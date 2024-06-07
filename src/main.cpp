@@ -3,19 +3,26 @@
 #include <string.h>
 #include <stdint.h>
 
+#define AIR_EN_PIN D12 
 
 
-uint16_t const max_voltage = 3984; // 3984 = 398.4V
-uint16_t const max_current = 50; // 50 = 5.0A
+
+uint16_t const max_voltage = 4032; // 3984 = 398.4V
+uint16_t const max_current = 20; // 50 = 5.0A
 uint8_t enable_data[] = {(max_voltage >> 8) & 0xFF, max_voltage & 0xFF, (max_current >> 8) & 0xFF, max_current & 0xFF,0x0};
 uint8_t disable_data[] = {(max_voltage >> 8) & 0xFF, max_voltage & 0xFF, (max_current >> 8) & 0xFF, max_current & 0xFF,0x1};
 CanMsg enable_msg = CanMsg(CanExtendedId(0x1806E5F4), 5, enable_data);
 CanMsg disable_msg = CanMsg(CanExtendedId(0x1806E5F4), 5, disable_data);
 uint16_t count = 0;
+bool accumulator_enable_status = false;
+bool old_accumulator_enable_status = false;
+unsigned long air_timer = millis();
 
 void setup() {
+
+  pinMode(AIR_EN_PIN, INPUT_PULLDOWN);
   
-  Serial.begin(9600);
+  Serial.begin(115200);
   while (!Serial) { }
   if (!CAN.begin(CanBitRate::BR_500k))
   {
@@ -26,9 +33,17 @@ void setup() {
 
 void loop() {
 
-  if(count > 50){
-    int ret = CAN.write(enable_msg);
-    // Serial.println(enable_msg);
+  accumulator_enable_status = digitalRead(AIR_EN_PIN) ? true : false;
+
+  if (accumulator_enable_status == true && old_accumulator_enable_status == false)
+  {
+    air_timer = millis();
+  }
+
+  old_accumulator_enable_status = accumulator_enable_status;
+
+  if(count > 25){
+    int ret = (accumulator_enable_status && (millis() - air_timer) > 5 * 1000UL) ? CAN.write(enable_msg) : CAN.write(disable_msg);
     if(!(ret == 0 || ret == 1)){
         Serial.print("CAN Error: ");
         Serial.println(ret);
