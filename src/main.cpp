@@ -63,17 +63,18 @@ void loop() {
     Serial.print(current_amps);
     Serial.println("A");
     uint8_t status = msg.data[4];
-    Serial.print("Status: ");
+    Serial.println("Status: ");
+    Serial.print("Hardware Fault: ");
     Serial.println(status & 0x1); //Hardware Fault
+    Serial.print("Charger OverTemp: ");
     Serial.println(status >> 0x1 & 0x1); // Charger OverTemp
+    Serial.print("Input Voltage Fault: ");
     Serial.println(status >> 0x2 & 0x1); // Input voltage fault
+    Serial.print("Battery Connection Fault: ");
     Serial.println(status >> 0x3 & 0x1); // Battery connection fault
+    Serial.print("Communication Fault: ");
     Serial.println(status >> 0x4 & 0x1); // communication fault
-
   }
-
-
   count++;
   delay(10);
-
 }
